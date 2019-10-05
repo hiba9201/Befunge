@@ -37,11 +37,40 @@ class Interpreter:
             elif symb == ".":
                 print(int(self.STACK.pop()), end="")
             elif symb == "?":
-                current_direction = random.choice(list(self.DIRECTIONS.values()))
+                current_direction = random.choice(
+                    list(self.DIRECTIONS.values()))
             elif symb == "|":
                 direction = "v" if int(self.STACK.pop()) == 0 else "^"
                 current_direction = self.DIRECTIONS[direction]
+            elif symb == "_":
+                direction = ">" if int(self.STACK.pop()) == 0 else "<"
+                current_direction = self.DIRECTIONS[direction]
+            elif symb == "#":
+                pos = (pos[0] + current_direction[0],
+                       pos[1] + current_direction[1])
+            elif symb == ":":
+                self.STACK.append(self.STACK[-1])
+            elif symb == "$":
+                self.STACK.pop()
+            elif symb == "\\":
+                last = self.STACK.pop()
+                last_last = self.STACK.pop()
+                self.STACK.append(last)
+                self.STACK.append(last_last)
+            elif symb == "%":
+                b = self.STACK.pop()
+                a = self.STACK.pop()
+                if b == 0:
+                    self.STACK.append(0)
+                else:
+                    self.STACK.append(a % b)
+            elif symb == "!":
+                a = 0 if self.STACK.pop() == 1 else 1
+                self.STACK.append(a)
+            elif symb == "&":
+                self.STACK.append(int(input()))
             elif symb == "@":
                 print()
                 break
-            pos = (pos[0] + current_direction[0], pos[1] + current_direction[1])
+            pos = (pos[0] + current_direction[0],
+                   pos[1] + current_direction[1])
