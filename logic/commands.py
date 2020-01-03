@@ -24,13 +24,18 @@ random.seed()
 # fingerprints import
 @commands.command_decorator("(")
 def load_fp(inter):
-    count = u.Utils.pop_with_zero(inter)
-    semantics = ""
+    count = u.pop_with_zero(inter)
+    semantics_arr = []
     for i in range(count):
-        semantics += chr(u.Utils.pop_with_zero(inter))
+        semantics_arr.append(chr(u.pop_with_zero(inter)))
+
+    semantics = ''.join(semantics_arr)
+
+    project_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               os.path.pardir)
 
     try:
-        fp = il.import_module(f'fingerprints.{semantics}', os.getcwd())
+        fp = il.import_module(f'fingerprints.{semantics}', project_dir)
         for letter in reversed(semantics):
             inter.stack.append(ord(letter))
         inter.stack.append(len(semantics))
@@ -45,19 +50,20 @@ def load_fp(inter):
 
 @commands.command_decorator(")")
 def unload_fp(inter):
-    count = u.Utils.pop_with_zero(inter)
+    count = u.pop_with_zero(inter)
     semantics = ""
     for i in range(count):
-        semantics += chr(u.Utils.pop_with_zero(inter))
+        semantics += chr(u.pop_with_zero(inter))
 
     fp_to_unload = list(filter(lambda fp: fp['semantics'] == semantics,
                                inter.imported_fps))
 
-    if len(fp_to_unload) != 0:
-        unload_commands = fp_to_unload[0]['commands']
-        del inter.imported_fps[inter.imported_fps.index(fp_to_unload[0])]
-    else:
+    if not fp_to_unload:
         return
+
+    unload_commands = fp_to_unload[0]['commands']
+    del inter.imported_fps[inter.imported_fps.index(fp_to_unload[0])]
+
     for command in unload_commands:
         del commands.commands[command]
 
@@ -97,14 +103,14 @@ def sys_info(inter):
                 int((len(f'{sys.maxsize:b}') + 1) / 8), int('01110', 2)]
     environ = [f'{key}={value}' for (key, value) in os.environ.items()]
 
-    num = u.Utils.pop_with_zero(inter)
+    num = u.pop_with_zero(inter)
     count = (len(size_stack_stack) + len(sys_data) + len(environ) +
              len(sys.argv[1:]))
     for var in environ:
-        u.Utils.write_string_to_stack(inter, var)
+        u.write_string_to_stack(inter, var)
 
     for arg in sys.argv[:1]:
-        u.Utils.write_string_to_stack(inter, arg)
+        u.write_string_to_stack(inter, arg)
 
     for size in size_stack_stack:
         inter.stack.append(size)
@@ -115,14 +121,14 @@ def sys_info(inter):
     if num > 0:
         chosen_cell = inter.stack[-num]
         for i in range(count):
-            u.Utils.pop_with_zero(inter)
+            u.pop_with_zero(inter)
         inter.stack.append(chosen_cell)
 
 
 @commands.command_decorator("w")
 def compare_dir(inter):
-    b = u.Utils.pop_with_zero(inter)
-    a = u.Utils.pop_with_zero(inter)
+    b = u.pop_with_zero(inter)
+    a = u.pop_with_zero(inter)
     if a < b:
         execute_command(inter, "[")
     elif a > b:
@@ -137,40 +143,34 @@ def push_next_char(inter):
 
 @commands.command_decorator("$")
 def pop(inter):
-    u.Utils.pop_with_zero(inter)
+    u.pop_with_zero(inter)
 
 
 @commands.command_decorator("x")
 def absolute_vector(inter):
-    dy = u.Utils.pop_with_zero(inter)
-    dx = u.Utils.pop_with_zero(inter)
+    dy = u.pop_with_zero(inter)
+    dx = u.pop_with_zero(inter)
     inter.ip = (dx, dy)
 
 
 @commands.command_decorator("#")
 def go_1_step(inter):
-    u.Utils.go_delta(inter, inter.delta)
+    u.go_delta(inter, inter.delta)
 
 
 @commands.command_decorator(",")
 def print_char(inter):
-    inter.out.write(chr(u.Utils.pop_with_zero(inter)))
-    inter.out.flush()
+    inter.io.write(chr(u.pop_with_zero(inter)))
 
 
 @commands.command_decorator(".")
 def print_digit(inter):
-    inter.out.write(str(u.Utils.pop_with_zero(inter)))
-    inter.out.flush()
+    inter.io.write(str(u.pop_with_zero(inter)))
 
 
 @commands.command_decorator("=")
 def execute(inter):
-    try:
-        exec(u.Utils.collect_string_from_stack(inter))
-        inter.stack.append(0)
-    except Exception:
-        inter.stack.append(1)
+    inter.stack.append(os.system(u.collect_string_from_stack(inter)))
 
 
 @commands.command_decorator("?")
@@ -180,48 +180,48 @@ def change_direction_random(inter):
 
 @commands.command_decorator("|")
 def vertical_direction_change(inter):
-    direction = "v" if u.Utils.pop_with_zero(inter) == 0 else "^"
+    direction = "v" if u.pop_with_zero(inter) == 0 else "^"
     inter.delta = inter.directions[direction]
 
 
 @commands.command_decorator("_")
 def horizontal_direction_change(inter):
-    direction = ">" if u.Utils.pop_with_zero(inter) == 0 else "<"
+    direction = ">" if u.pop_with_zero(inter) == 0 else "<"
     inter.delta = inter.directions[direction]
 
 
 @commands.command_decorator(":")
 def double_stack_value(inter):
-    a = u.Utils.pop_with_zero(inter)
+    a = u.pop_with_zero(inter)
     inter.stack.append(a)
     inter.stack.append(a)
 
 
 @commands.command_decorator("\\")
 def switch_stack_values(inter):
-    b = u.Utils.pop_with_zero(inter)
-    a = u.Utils.pop_with_zero(inter)
+    b = u.pop_with_zero(inter)
+    a = u.pop_with_zero(inter)
     inter.stack.append(b)
     inter.stack.append(a)
 
 
 @commands.command_decorator("%")
 def mod(inter):
-    u.Utils.arithmetic(inter,
+    u.arithmetic(inter,
                        lambda b, a: inter.stack.append(0) if b == 0 else
                        inter.stack.append(a % b))
 
 
 @commands.command_decorator("/")
 def divide(inter):
-    u.Utils.arithmetic(inter,
+    u.arithmetic(inter,
                        lambda b, a: inter.stack.append(0) if b == 0 else
                        inter.stack.append(a / b))
 
 
 @commands.command_decorator("!")
 def negotiate(inter):
-    a = 1 if u.Utils.pop_with_zero(inter) == 0 else 0
+    a = 1 if u.pop_with_zero(inter) == 0 else 0
     inter.stack.append(a)
 
 
@@ -231,12 +231,12 @@ def read_digit(inter):
         inter.input_mode = True
         return
     res = ''
-    read = inter.inp.read(1)
+    read = inter.io.get()
     while read and not read.isdigit():
-        read = inter.inp.read(1)
+        read = inter.io.get()
     while read and read.isdigit():
         res += read
-        read = inter.inp.read(1)
+        read = inter.io.get()
 
     if not res:
         return
@@ -251,28 +251,32 @@ def read_symb(inter):
         inter.input_mode = True
         return
     inter.input_mode = False
-    inter.stack.append(ord(inter.inp.read(1)))
+    symb = inter.io.get()
+    if symb:
+        inter.stack.append(ord(symb))
+    else:
+        inter.stack.append(-1)
 
 
 # arithmetic
 @commands.command_decorator("*")
 def multiply(inter):
-    u.Utils.arithmetic(inter, lambda s, f: inter.stack.append(s * f))
+    u.arithmetic(inter, lambda s, f: inter.stack.append(s * f))
 
 
 @commands.command_decorator("+")
 def sum(inter):
-    u.Utils.arithmetic(inter, lambda s, f: inter.stack.append(s + f))
+    u.arithmetic(inter, lambda s, f: inter.stack.append(s + f))
 
 
 @commands.command_decorator("-")
 def subtract(inter):
-    u.Utils.arithmetic(inter, lambda s, f: inter.stack.append(f - s))
+    u.arithmetic(inter, lambda s, f: inter.stack.append(f - s))
 
 
 @commands.command_decorator("`")
 def compare(inter):
-    u.Utils.arithmetic(inter, lambda s, f:
+    u.arithmetic(inter, lambda s, f:
     inter.stack.append(1 if f > s else 0))
 
 
@@ -280,8 +284,8 @@ def compare(inter):
 @commands.command_decorator("g")
 def get(inter):
     try:
-        y = u.Utils.pop_with_zero(inter)
-        x = u.Utils.pop_with_zero(inter)
+        y = u.pop_with_zero(inter)
+        x = u.pop_with_zero(inter)
         get_c = ord(inter.program[y][x])
     except IndexError:
         get_c = 0
@@ -290,9 +294,9 @@ def get(inter):
 
 @commands.command_decorator("p")
 def put(inter):
-    y = u.Utils.pop_with_zero(inter)
-    x = u.Utils.pop_with_zero(inter)
-    n = u.Utils.pop_with_zero(inter)
+    y = u.pop_with_zero(inter)
+    x = u.pop_with_zero(inter)
+    n = u.pop_with_zero(inter)
     while len(inter.program) < y + 1:
         inter.program.append([" "] * len(inter.program[0]))
     if len(inter.program[y]) < x + 1:
@@ -305,7 +309,7 @@ def put(inter):
 
 @commands.command_decorator("s")
 def store(inter):
-    n = u.Utils.pop_with_zero(inter)
+    n = u.pop_with_zero(inter)
     execute_command(inter, "#")
     inter.program[inter.ip[1]][inter.ip[0]] = chr(n)
 
@@ -318,18 +322,18 @@ def clear(inter):
 
 @commands.command_decorator("r")
 def reflect(inter):
-    inter.delta = u.Utils.multiply_delta(inter, -1)
+    inter.delta = u.multiply_delta(inter, -1)
 
 
 # file input/output
 @commands.command_decorator("i")
 def input_file(inter):
-    filename = u.Utils.collect_string_from_stack(inter)
-    y = u.Utils.pop_with_zero(inter)
-    x = u.Utils.pop_with_zero(inter)
+    filename = u.collect_string_from_stack(inter)
+    y = u.pop_with_zero(inter)
+    x = u.pop_with_zero(inter)
     try:
         with open(filename, "r") as f:
-            last_x, last_y = u.Utils.write_file_to_program(inter, f, x, y)
+            last_x, last_y = u.write_file_to_program(inter, f, x, y)
             inter.stack.append(last_x)
             inter.stack.append(last_y)
 
@@ -339,19 +343,19 @@ def input_file(inter):
 
 @commands.command_decorator("o")
 def output_file(inter):
-    filename = u.Utils.collect_string_from_stack(inter)
-    f_y = u.Utils.pop_with_zero(inter)
-    f_x = u.Utils.pop_with_zero(inter)
+    filename = u.collect_string_from_stack(inter)
+    f_y = u.pop_with_zero(inter)
+    f_x = u.pop_with_zero(inter)
 
-    s_y = u.Utils.pop_with_zero(inter)
-    s_x = u.Utils.pop_with_zero(inter)
+    s_y = u.pop_with_zero(inter)
+    s_x = u.pop_with_zero(inter)
 
     lines_len = s_x - f_x
 
     try:
         with open(filename, "w") as f:
             for y in range(f_y, s_y + 1):
-                f.write(u.Utils.get_line_from_space(inter, f_x, y,
+                f.write(u.get_line_from_space(inter, f_x, y,
                                                     lines_len))
     except OSError:
         execute_command(inter, "r")
@@ -359,8 +363,8 @@ def output_file(inter):
 
 @commands.command_decorator("j")
 def jump(inter):
-    a = u.Utils.pop_with_zero(inter)
-    u.Utils.go_delta(inter, u.Utils.multiply_delta(inter, a))
+    a = u.pop_with_zero(inter)
+    u.go_delta(inter, u.multiply_delta(inter, a))
 
 
 # program terminating
@@ -377,13 +381,13 @@ def finish(inter):
 
 @commands.command_decorator("k")
 def iterate(inter):
-    inter.iter_count = u.Utils.pop_with_zero(inter)
+    inter.iter_count = u.pop_with_zero(inter)
 
 
 # stack stack operations
 @commands.command_decorator("{")
 def start_block(inter):
-    n = int(u.Utils.pop_with_zero(inter))
+    n = int(u.pop_with_zero(inter))
     if n <= 0:
         inter.stack_stack.append([] * (-n))
     else:
@@ -404,13 +408,13 @@ def end_block(inter):
     if len(inter.stack_stack) == 1:
         execute_command(inter, "r")
         return
-    n = int(u.Utils.pop_with_zero(inter))
+    n = int(u.pop_with_zero(inter))
     TOSS = inter.stack_stack.pop()
 
     inter.stack = inter.stack_stack[-1]
 
-    y = u.Utils.pop_with_zero(inter)
-    x = u.Utils.pop_with_zero(inter)
+    y = u.pop_with_zero(inter)
+    x = u.pop_with_zero(inter)
 
     inter.storage_offset = (x, y)
 
@@ -431,7 +435,7 @@ def stack_under_stack(inter):
         execute_command(inter, "r")
         return
 
-    count = u.Utils.pop_with_zero(inter)
+    count = u.pop_with_zero(inter)
     if count > 0:
         for _ in range(count):
             item = 0 if len(inter.stack_stack[-2]
@@ -439,5 +443,5 @@ def stack_under_stack(inter):
             inter.stack.append(item)
     else:
         for _ in range(-count):
-            item = u.Utils.pop_with_zero(inter)
+            item = u.pop_with_zero(inter)
             inter.stack_stack[-2].append(item)

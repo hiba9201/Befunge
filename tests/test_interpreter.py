@@ -16,7 +16,7 @@ class CommandsTests(unittest.TestCase):
     def setUp(self):
         self.inp = io.StringIO()
         self.out = io.StringIO()
-        self.inter = intr.Interpreter(self.inp, self.out)
+        self.inter = intr.Interpreter(u.CustomIO(self.inp, self.out))
         self.inter.init_interpreter("./tests/test_code.f98")
 
     # testing Interpreter class commands
@@ -59,15 +59,15 @@ class CommandsTests(unittest.TestCase):
         self.assertEqual((8, 0), self.inter.ip)
 
     def test_program_execution(self):
-        start_code = self.inter.run()
-        self.assertEqual(start_code, 0)
+        self.inter.run()
         self.assertEqual(self.inter.stack, [ord("h"), ord("e"), ord("y")])
 
     def test_start_on_non_existing_file(self):
         # wrong file so not using set up interpreter
-        inter = intr.Interpreter("tests/not_test_code.f98")
-        start_code = inter.run()
-        self.assertEqual(start_code, 1)
+        inter = intr.Interpreter()
+
+        self.assertRaises(FileNotFoundError,
+                          inter.init_interpreter, "tests/not_test_code.f98")
 
     # testing Commands class commands
     def test_turn(self):
@@ -100,13 +100,13 @@ class CommandsTests(unittest.TestCase):
 
     def test_pop(self):
         self.inter._push_digit("3")
-        self.assertEqual(3, u.Utils.pop_with_zero(self.inter))
+        self.assertEqual(3, u.pop_with_zero(self.inter))
         self.inter._push_digit("3")
         cmds.execute_command(self.inter, "$")
         self.assertEqual(0, len(self.inter.stack))
 
     def test_pop_empty_stack(self):
-        self.assertEqual(0, u.Utils.pop_with_zero(self.inter))
+        self.assertEqual(0, u.pop_with_zero(self.inter))
 
     def test_absolute_vector(self):
         self.inter._push_digit("2")
@@ -129,15 +129,14 @@ class CommandsTests(unittest.TestCase):
         self.assertEqual("2", self.out.getvalue())
 
     def test_execute(self):
-        u.Utils.write_string_to_stack(self.inter, 'print("hi", end="")')
-        with capture(cmds.execute_command,
-                     self.inter, "=") as out:
-            self.assertEqual("hi", out)
+        u.write_string_to_stack(self.inter, 'echo "hi"')
+        cmds.execute_command(self.inter, "=")
+        self.assertEqual(0, self.inter.stack.pop())
 
     def test_execute_failure(self):
-        u.Utils.write_string_to_stack(self.inter, 'print("hi", end=")')
+        u.write_string_to_stack(self.inter, 'eco')
         cmds.execute_command(self.inter, "=")
-        self.assertNotEqual(u.Utils.pop_with_zero(self.inter), 0)
+        self.assertNotEqual(0, u.pop_with_zero(self.inter))
 
     def test_vertical_dir_change(self):
         cmds.execute_command(self.inter, "|")
@@ -227,10 +226,10 @@ class CommandsTests(unittest.TestCase):
         self.inp.seek(0)
         cmds.execute_command(self.inter, "~")
         cmds.execute_command(self.inter, "~")
-        self.assertEqual(ord('k'), u.Utils.pop_with_zero(self.inter))
+        self.assertEqual(ord('k'), u.pop_with_zero(self.inter))
 
     def test_load_unload_fp(self):
-        u.Utils.write_string_to_stack(self.inter, 'STRN')
+        u.write_string_to_stack(self.inter, 'STRN')
         self.inter.stack.append(4)
         cmds.execute_command(self.inter, '(')
         self.assertEqual('STRN', self.inter.imported_fps[0]['semantics'])
@@ -249,7 +248,7 @@ class CommandsTests(unittest.TestCase):
         self.inter.stack.append(1)
         self.inter.stack.append(0)
         cmds.execute_command(self.inter, 'g')
-        self.assertEqual(u.Utils.pop_with_zero(self.inter), ord('h'))
+        self.assertEqual(u.pop_with_zero(self.inter), ord('h'))
 
     def test_put(self):
         self.inter.stack.append(ord('a'))
@@ -328,7 +327,7 @@ class CommandsTests(unittest.TestCase):
 
 class UtilsTests(unittest.TestCase):
     def test_lines_to_table(self):
-        table = u.Utils.lines_to_table(['hey', 'hi'])
+        table = u.lines_to_table(['hey', 'hi'])
         self.assertEqual([['h', 'e', 'y'], ['h', 'i', ' ']], table)
 
     def test_get_line_from_space(self):
@@ -337,7 +336,7 @@ class UtilsTests(unittest.TestCase):
         x = 0
         y = 2
         line_len = 6
-        string = u.Utils.get_line_from_space(self.inter, x, y, line_len)
+        string = u.get_line_from_space(self.inter, x, y, line_len)
         self.assertEqual('string\n', string)
 
 

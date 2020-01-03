@@ -1,7 +1,7 @@
 #! /usr/local/bin/python3
-
 import sys
 import argparse
+
 from logic import interpreter
 
 
@@ -16,7 +16,10 @@ if __name__ == '__main__':
     args = Parser().parser.parse_args()
 
     interpreter = interpreter.Interpreter()
-    if interpreter.init_interpreter(args.program) == 1:
+
+    try:
+        interpreter.init_interpreter(args.program)
+    except FileNotFoundError:
         print("File is empty or doesn't exist", file=sys.stderr)
         sys.exit(1)
 

@@ -4,7 +4,7 @@ import sys
 import argparse
 import PyQt5.QtWidgets as widgets
 
-import GUI.ui as ui
+from GUI import Window
 
 
 class Parser:
@@ -18,7 +18,7 @@ if __name__ == '__main__':
     args = Parser().parser.parse_args()
     app = widgets.QApplication(sys.argv)
 
-    window = ui.Window(args)
+    window = Window(args)
 
     sys.exit(app.exec_())
 

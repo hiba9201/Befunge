@@ -7,28 +7,24 @@ commands = u.Registry()
 
 @commands.command_decorator("H")
 def to_hex(inter):
-    inter.out.write('{0:x}'.format(u.Utils.pop_with_zero(inter)))
-    inter.out.flush()
+    inter.io.write('{0:x}'.format(u.pop_with_zero(inter)))
 
 
 @commands.command_decorator("B")
 def to_bin(inter):
-    inter.out.write('{0:b}'.format(u.Utils.pop_with_zero(inter)))
-    inter.out.flush()
+    inter.io.write('{0:b}'.format(u.pop_with_zero(inter)))
 
 
 @commands.command_decorator("O")
 def to_octal(inter):
-    inter.out.write('{0:o}'.format(u.Utils.pop_with_zero(inter)))
-    inter.out.flush()
+    inter.io.write('{0:o}'.format(u.pop_with_zero(inter)))
 
 
 @commands.command_decorator("N")
 def to_base(inter):
-    num = u.Utils.pop_with_zero(inter)
-    base = u.Utils.pop_with_zero(inter)
-    inter.out.write(to_base_n(num, base))
-    inter.out.flush()
+    num = u.pop_with_zero(inter)
+    base = u.pop_with_zero(inter)
+    inter.io.write(to_base_n(num, base))
 
 
 @commands.command_decorator("I")
@@ -37,15 +33,15 @@ def from_base(inter):
         inter.input_mode = True
         return
     inter.input_mode = False
-    base = u.Utils.pop_with_zero(inter)
+    base = u.pop_with_zero(inter)
 
     num = ''
-    read = inter.inp.read(1)
+    read = inter.io.get()
     while not read.isdigit():
-        read = inter.inp.read(1)
+        read = inter.io.get()
     while read.isdigit():
         num += read
-        read = inter.inp.read(1)
+        read = inter.io.get()
 
     res = int(to_base_n(int(num), base))
     inter.stack.append(res)

@@ -1,87 +1,103 @@
 import io
+import time
 
-import PyQt5.QtWidgets as widgets
-import PyQt5.QtGui as gui
-import PyQt5.QtCore as core
+from PyQt5 import QtGui, QtWidgets, QtCore
 
 from logic import interpreter
 from logic import utils
 
 
-class Window(widgets.QWidget):
+class Window(QtWidgets.QWidget):
     def __init__(self, args):
         super().__init__()
 
         self._args = args
-        self._running = False
+        self.running = False
+        self.step_running = False
+        self._thread_pool = QtCore.QThreadPool()
         self._start_ui()
 
     def _start_ui(self):
-        self._running = False
-        commands_layout = widgets.QHBoxLayout()
+        commands_layout = QtWidgets.QHBoxLayout()
+
+        self._exit_dialog = ExitDialog(self)
+        self._exit_dialog.setStyleSheet('background-color: #fff;')
+        self._exit_dialog.setModal(True)
+        self._exit_dialog.accepted.connect(
+            QtCore.QCoreApplication.instance().quit)
+        self._exit_dialog.rejected.connect(
+            QtCore.QCoreApplication.instance().quit)
 
         self._run_btn = Window.create_cmd_button('Запуск')
-        run = widgets.QAction(self)
+        run = QtWidgets.QAction(self)
         run.setShortcut('F5')
         run.triggered.connect(self.run_program)
         self._run_btn.addAction(run)
         self._run_btn.clicked.connect(self.run_program)
 
+        self._step_run_btn = Window.create_cmd_button('Запуск пошаговый')
+        run = QtWidgets.QAction(self)
+        run.setShortcut('F6')
+        run.triggered.connect(self.step_run_program)
+        self._step_run_btn.addAction(run)
+        self._step_run_btn.clicked.connect(self.step_run_program)
+
         self._step_btn = Window.create_cmd_button('Шаг')
-        step = widgets.QAction(self)
+        step = QtWidgets.QAction(self)
         step.setShortcut('Space')
         step.triggered.connect(self.make_step)
         self._step_btn.addAction(step)
         self._step_btn.clicked.connect(self.make_step)
 
         self._restart_btn = Window.create_cmd_button('Перезапустить')
-        restart = widgets.QAction(self)
+        restart = QtWidgets.QAction(self)
         restart.setShortcut('F9')
         restart.triggered.connect(self._create_interpreter)
         self._restart_btn.addAction(restart)
         self._restart_btn.clicked.connect(self._create_interpreter)
 
         commands_layout.addWidget(self._run_btn)
+        commands_layout.addWidget(self._step_run_btn)
         commands_layout.addWidget(self._step_btn)
         commands_layout.addWidget(self._restart_btn)
-        commands_layout.setAlignment(core.Qt.AlignLeft)
+        commands_layout.setAlignment(QtCore.Qt.AlignLeft)
 
-        commands_group = widgets.QGroupBox()
+        commands_group = QtWidgets.QGroupBox()
         commands_group.setLayout(commands_layout)
         commands_group.setMaximumHeight(40)
         commands_layout.setSpacing(20)
         commands_layout.setContentsMargins(0, 0, 0, 0)
 
-        inp_label = widgets.QLabel('Поле ввода:')
-        inp_label.setFont(gui.QFont('Mono', 20))
+        inp_label = QtWidgets.QLabel('Поле ввода:')
+        inp_label.setFont(QtGui.QFont('Mono', 20))
 
         inp_label.show()
 
-        self._inp = widgets.QPlainTextEdit('', self)
-        self._inp.setAutoFillBackground(True)
-        self._inp.setMinimumHeight(90)
-        self._inp.setFont(gui.QFont('Courier', 14))
+        self.inp = QtWidgets.QPlainTextEdit('', self)
+        self.inp.setAutoFillBackground(True)
+        self.inp.setMinimumHeight(90)
+        self.inp.setFont(QtGui.QFont('Courier', 14))
 
-        self._inp.show()
+        self.inp.show()
 
-        self._input_button = widgets.QPushButton('Ввести')
-        self._input_button.setFont(gui.QFont('Mono', 16))
-        self._input_button.setStyleSheet('''background-color: #fff; 
+        self.input_button = QtWidgets.QPushButton('Ввести')
+        self.input_button.setFont(QtGui.QFont('Mono', 16))
+        self.input_button.setStyleSheet('''background-color: #fff; 
                                             margin-top: 10px;''')
-        self._input_button.clicked.connect(self.input_cmd)
+        self.input_button.clicked.connect(self.input_cmd)
 
-        self._input_button.setFixedHeight(40)
-        self._input_button.setFixedWidth(150)
+        self.input_button.setFixedHeight(40)
+        self.input_button.setFixedWidth(150)
 
-        self._input_button.show()
+        self.input_button.show()
 
-        input_group = widgets.QGroupBox()
+        input_group = QtWidgets.QGroupBox()
 
-        input_layout = widgets.QVBoxLayout()
+        input_layout = QtWidgets.QVBoxLayout()
         input_layout.addWidget(inp_label)
-        input_layout.addWidget(self._inp)
-        input_layout.addWidget(self._input_button)
-        input_layout.setAlignment(self._input_button, core.Qt.AlignRight)
+        input_layout.addWidget(self.inp)
+        input_layout.addWidget(self.input_button)
+        input_layout.setAlignment(self.input_button, QtCore.Qt.AlignRight)
 
         input_layout.setSpacing(5)
         input_layout.setContentsMargins(0, 0, 0, 0)
@@ -90,24 +106,24 @@ class Window(widgets.QWidget):
         input_group.setMaximumWidth(400)
         input_group.setLayout(input_layout)
 
-        out_label = widgets.QLabel('Поле вывода:')
-        out_label.setFont(gui.QFont('Mono', 20))
+        out_label = QtWidgets.QLabel('Поле вывода:')
+        out_label.setFont(QtGui.QFont('Mono', 20))
 
         out_label.show()
 
-        self._out = widgets.QPlainTextEdit('', self)
-        self._out.setReadOnly(True)
-        self._out.setMinimumHeight(100)
-        self._out.setFont(gui.QFont('Courier', 14))
-        self._out.setStyleSheet('background-color: #fff; border: none;')
+        self.out = QtWidgets.QPlainTextEdit('', self)
+        self.out.setReadOnly(True)
+        self.out.setMinimumHeight(100)
+        self.out.setFont(QtGui.QFont('Courier', 14))
+        self.out.setStyleSheet('background-color: #fff; border: none;')
 
-        self._out.show()
+        self.out.show()
 
-        output_group = widgets.QGroupBox()
+        output_group = QtWidgets.QGroupBox()
 
-        output_layout = widgets.QVBoxLayout()
+        output_layout = QtWidgets.QVBoxLayout()
         output_layout.addWidget(out_label)
-        output_layout.addWidget(self._out)
+        output_layout.addWidget(self.out)
         output_layout.setSpacing(5)
         output_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -115,55 +131,61 @@ class Window(widgets.QWidget):
         output_group.setLayout(output_layout)
 
         self.setWindowTitle('Befunge Interpreter')
-        self.setWindowIcon(gui.QIcon('media/icon.png'))
+        self.setWindowIcon(QtGui.QIcon('media/icon.png'))
         self.setMinimumSize(800, 500)
         self.resize(1000, 600)
         self.center()
 
-        self._space = Space(self)
+        self.space = Space(self)
 
-        window_layout = widgets.QGridLayout()
+        window_layout = QtWidgets.QGridLayout()
         window_layout.setHorizontalSpacing(5)
         window_layout.setVerticalSpacing(10)
         window_layout.addWidget(commands_group, 0, 0, 1, 2)
-        window_layout.addWidget(self._space, 1, 0, 4, 2)
+        window_layout.addWidget(self.space, 1, 0, 4, 2)
         window_layout.addWidget(input_group, 5, 0)
         window_layout.addWidget(output_group, 5, 1)
         window_layout.setContentsMargins(10, 10, 10, 10)
 
-        self._output_stream = io.StringIO()
-        self._input_stream = io.StringIO()
-        self._create_interpreter()
+        self.output_stream = io.StringIO()
+        self.input_stream = io.StringIO()
 
         self.setLayout(window_layout)
         self.setStyleSheet('background-color: #FFC20B;')
         self.show()
+        self._create_interpreter()
 
     def _create_interpreter(self):
-        self._output_stream.truncate(0)
-        self._input_stream.truncate(0)
+        self.output_stream.truncate(0)
+        self.input_stream.truncate(0)
+        io = utils.CustomIO(self.input_stream, self.output_stream)
 
-        self._inter = interpreter.Interpreter(self._input_stream,
-                                              self._output_stream)
-        if self._inter.init_interpreter(self._args.program) == 1:
-            self._out.appendPlainText("File is empty or doesn't exist")
+        self.inter = interpreter.Interpreter(io)
+        try:
+            self.inter.init_interpreter(self._args.program)
+        except FileNotFoundError as file_name:
+            self._exit_dialog.set_text(f'Файл "{file_name}" не найден!')
+            self._exit_dialog.open()
+            return
 
-        self._space.write_table_to_space(self._inter, False)
+        self.space.write_table_to_space(self.inter, False)
 
-        self._inp.clear()
-        self._out.clear()
+        self.inp.clear()
+        self.out.clear()
 
         self.disable_input()
+        self.running = False
+        self.step_running = False
 
     def center(self):
         qr = self.frameGeometry()
-        cp = widgets.QDesktopWidget().availableGeometry().center()
+        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
     @staticmethod
     def create_cmd_button(text):
-        button = widgets.QPushButton(text)
+        button = QtWidgets.QPushButton(text)
 
         button.setFixedWidth(100)
         button.setStyleSheet('background-color: #fff;')
@@ -171,84 +193,155 @@ class Window(widgets.QWidget):
         return button
 
     def make_step(self):
-        if self._inter.finished:
+        if self.inter.finished:
             return
 
-        if self._inter.input_mode:
-            if len(self._input_stream.getvalue()) == 0:
+        if self.inter.input_mode:
+            if len(self.input_stream.getvalue()) == 0:
                 self.enable_input()
                 return
 
-        self._inter.execute_one_step()
+        self.inter.execute_one_step()
 
-        if self._inter.input_mode:
-            self._inp.clear()
+        if self.inter.input_mode:
+            self.inp.clear()
             self.enable_input()
-        self._space.write_table_to_space(self._inter)
-        self._out.setPlainText(self._output_stream.getvalue())
+        self.space.write_table_to_space(self.inter)
+        self.out.setPlainText(self.output_stream.getvalue())
+
+    def step_run_program(self):
+        worker = ProgramWorker(self)
+        worker.signals.update_ui.connect(self._update_ui)
+        worker.signals.clear_input.connect(self.inp.clear)
+        worker.signals.enable_input.connect(self.enable_input)
+
+        self._thread_pool.start(worker)
 
     def run_program(self):
-        self._running = True
+        self.running = True
 
-        while not self._inter.finished:
-            if self._inter.input_mode:
-                if len(self._inp.toPlainText()) == 0:
+        while not self.inter.finished and self.running:
+            if self.inter.input_mode:
+                if len(self.inp.toPlainText()) == 0:
                     self.enable_input()
                     return
 
-            self._inter.execute_one_step()
+            self.inter.execute_one_step()
 
-            if self._inter.input_mode:
-                self._inp.clear()
+            if self.inter.input_mode:
+                self.inp.clear()
                 self.enable_input()
-                self._out.setPlainText(self._output_stream.getvalue())
+                self._update_ui()
 
-        self._running = False
-        self._space.write_table_to_space(self._inter)
-        self._out.setPlainText(self._output_stream.getvalue())
+        self._update_ui()
+
+        self.running = False
+
+    def _update_ui(self):
+        self.space.write_table_to_space(self.inter)
+        self.out.setPlainText(self.output_stream.getvalue())
 
     def input_cmd(self):
-        prev = self._input_stream.tell()
-        self._input_stream.write(self._inp.toPlainText())
-        self._input_stream.seek(prev)
+        prev = self.input_stream.tell()
+        self.input_stream.write(self.inp.toPlainText())
+        self.input_stream.seek(prev)
 
         self.disable_input()
 
-        if self._running:
+        if self.running:
             self.run_program()
 
+        if self.step_running:
+            self.step_run_program()
+
     def disable_input(self):
-        self._inp.setReadOnly(True)
-        self._inp.setStyleSheet(
+        self.inp.setReadOnly(True)
+        self.inp.setStyleSheet(
             'background-color: #DADADA; border: none;')
-        self._input_button.setDisabled(True)
+        self.input_button.setDisabled(True)
 
     def enable_input(self):
-        self._inp.setReadOnly(False)
-        self._inp.setStyleSheet(
+        self.inp.setReadOnly(False)
+        self.inp.setStyleSheet(
             'background-color: #fff; border: none;')
-        self._input_button.setDisabled(False)
+        self.input_button.setDisabled(False)
 
 
-class Space(widgets.QTableWidget):
+class ProgramWorkerSignals(QtCore.QObject):
+    update_ui = QtCore.pyqtSignal()
+    enable_input = QtCore.pyqtSignal()
+    clear_input = QtCore.pyqtSignal()
+
+
+class ProgramWorker(QtCore.QRunnable):
+    def __init__(self, window):
+        super(ProgramWorker, self).__init__()
+        self.window = window
+        self.signals = ProgramWorkerSignals()
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        self.window.step_running = True
+
+        while not self.window.inter.finished and self.window.step_running:
+            if self.window.inter.input_mode:
+                if len(self.window.inp.toPlainText()) == 0:
+                    self.window.enable_input()
+                    return
+
+            self.window.inter.execute_one_step()
+
+            if self.window.inter.input_mode:
+                self.signals.clear_input.emit()
+                self.signals.enable_input.emit()
+                self.signals.update_ui.emit()
+
+            self.signals.update_ui.emit()
+            time.sleep(0.04)
+
+        self.window.step_running = False
+
+
+class ExitDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._label = QtWidgets.QLabel()
+
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok)
+        buttons.accepted.connect(self.accept)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self._label)
+        layout.addWidget(buttons)
+
+        layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+
+        self.setLayout(layout)
+
+    def set_text(self, text):
+        self._label.setText(text)
+
+
+class Space(QtWidgets.QTableWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setStyleSheet('background-color: #fff;')
-        self.setEditTriggers(widgets.QAbstractItemView.NoEditTriggers)
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
         self.show()
 
     def write_table_to_space(self, inter, show_cursor=True):
-        active_color = gui.QColor()
+        active_color = QtGui.QColor()
         active_color.setRgb(255, 127, 248)
-        active_brush = gui.QBrush(active_color)
+        active_brush = QtGui.QBrush(active_color)
 
-        common_color = gui.QColor()
+        common_color = QtGui.QColor()
         common_color.setRgb(255, 255, 255)
-        common_brush = gui.QBrush(common_color)
+        common_brush = QtGui.QBrush(common_color)
 
         ui_cursor = Space.get_cursor(inter,
-                                     utils.Utils.multiply_delta(inter, -1))
+                                     utils.multiply_delta(inter, -1))
         self.clear()
         for i in range(len(inter.program)):
             if i >= self.rowCount():
@@ -258,12 +351,12 @@ class Space(widgets.QTableWidget):
                 if j >= self.columnCount():
                     self.insertColumn(j)
                 self.setColumnWidth(j, 20)
-                item = widgets.QTableWidgetItem()
+                item = QtWidgets.QTableWidgetItem()
                 if not self.item(i, j):
                     self.setItem(i, j, item)
                 self.item(i, j).setText(inter.program[i][j])
-                self.item(i, j).setFlags(core.Qt.NoItemFlags)
-                self.item(i, j).setFlags(core.Qt.ItemIsEnabled)
+                self.item(i, j).setFlags(QtCore.Qt.NoItemFlags)
+                self.item(i, j).setFlags(QtCore.Qt.ItemIsEnabled)
                 if ui_cursor == (j, i) and show_cursor:
                     self.item(i, j).setBackground(active_brush)
                 else:

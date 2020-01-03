@@ -1,4 +1,4 @@
 011v
    >"NRTS"4(03G=  $)      v
    ^                      _@
-print('hello world')0
+echo "hello world"0

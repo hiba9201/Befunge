@@ -4,11 +4,20 @@ import logic.utils as u
 import logic.commands as cmds
 
 
-class Interpreter:
+class StandardIO:
+    @staticmethod
+    def get():
+        return sys.stdin.read(1)
 
-    def __init__(self, inp=sys.stdin, out=sys.stdout):
-        self.inp = inp
-        self.out = out
+    @staticmethod
+    def write(text):
+        sys.stdout.write(text)
+        sys.stdout.flush()
+
+
+class Interpreter:
+    def __init__(self, io=StandardIO()):
+        self.io = io
         self.program = []
         self.stack_stack = [[]]
         self.stack = self.stack_stack[0]
@@ -28,22 +37,21 @@ class Interpreter:
         self.imported_fps = []
 
     def init_interpreter(self, code_file):
-        self.program = u.Utils.lines_to_table(u.Utils.read_file(code_file))
+        self.program = u.lines_to_table(u.read_file(code_file))
 
         if not self.program:
-            return 1
-
-        return 0
+            raise FileNotFoundError(code_file)
 
     def run(self):
         if not self.program:
-            return 1
+            raise InitInterpreter()
         while not self.finished:
             self.execute_one_step()
 
-        return 0
-
     def execute_one_step(self):
+        if not self.program:
+            raise InitInterpreter
+
         symb = self.program[self.ip[1]][self.ip[0]]
 
         if self.iter_count == 0:
@@ -85,3 +93,7 @@ class Interpreter:
     def _go_1_step(self):
         y = (self.ip[1] + self.delta[1]) % (len(self.program))
         self.ip = ((self.ip[0] + self.delta[0]) % (len(self.program[y])), y)
+
+
+class InitInterpreter(Exception):
+    pass
