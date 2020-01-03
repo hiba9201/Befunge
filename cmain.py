@@ -2,9 +2,7 @@
 
 import sys
 import argparse
-import PyQt5.QtWidgets as widgets
-
-import GUI.ui as ui
+from logic import interpreter
 
 
 class Parser:
@@ -16,9 +14,10 @@ class Parser:
 
 if __name__ == '__main__':
     args = Parser().parser.parse_args()
-    app = widgets.QApplication(sys.argv)
 
-    window = ui.Window(args)
+    interpreter = interpreter.Interpreter()
+    if interpreter.init_interpreter(args.program) == 1:
+        print("File is empty or doesn't exist", file=sys.stderr)
+        sys.exit(1)
 
-    sys.exit(app.exec_())
-
+    interpreter.run()
