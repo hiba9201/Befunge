@@ -13,6 +13,7 @@ class Window(widgets.QWidget):
         super().__init__()
 
         self._args = args
+        self._running = False
         self._start_ui()
 
     def _start_ui(self):
@@ -45,9 +46,9 @@ class Window(widgets.QWidget):
         commands_layout.addWidget(self._restart_btn)
         commands_layout.setAlignment(core.Qt.AlignLeft)
 
-        comands_group = widgets.QGroupBox()
-        comands_group.setLayout(commands_layout)
-        comands_group.setMaximumHeight(40)
+        commands_group = widgets.QGroupBox()
+        commands_group.setLayout(commands_layout)
+        commands_group.setMaximumHeight(40)
         commands_layout.setSpacing(20)
         commands_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -66,8 +67,7 @@ class Window(widgets.QWidget):
         self._input_button = widgets.QPushButton('Ввести')
         self._input_button.setFont(gui.QFont('Mono', 16))
         self._input_button.setStyleSheet('''background-color: #fff; 
-                                            margin-top: 10px; 
-                                            margin-right: 8px;''')
+                                            margin-top: 10px;''')
         self._input_button.clicked.connect(self.input_cmd)
 
         self._input_button.setFixedHeight(40)
@@ -123,9 +123,9 @@ class Window(widgets.QWidget):
         self._space = Space(self)
 
         window_layout = widgets.QGridLayout()
-        window_layout.setHorizontalSpacing(0)
+        window_layout.setHorizontalSpacing(5)
         window_layout.setVerticalSpacing(10)
-        window_layout.addWidget(comands_group, 0, 0, 1, 2)
+        window_layout.addWidget(commands_group, 0, 0, 1, 2)
         window_layout.addWidget(self._space, 1, 0, 4, 2)
         window_layout.addWidget(input_group, 5, 0)
         window_layout.addWidget(output_group, 5, 1)
