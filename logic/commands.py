@@ -6,7 +6,6 @@ import datetime as dt
 
 import logic.utils as u
 
-
 commands = u.Registry()
 
 
@@ -207,16 +206,14 @@ def switch_stack_values(inter):
 
 @commands.command_decorator("%")
 def mod(inter):
-    u.arithmetic(inter,
-                       lambda b, a: inter.stack.append(0) if b == 0 else
-                       inter.stack.append(a % b))
+    u.arithmetic(inter, lambda b, a: inter.stack.append(0) if b == 0 else
+                 inter.stack.append(a % b))
 
 
 @commands.command_decorator("/")
 def divide(inter):
-    u.arithmetic(inter,
-                       lambda b, a: inter.stack.append(0) if b == 0 else
-                       inter.stack.append(a / b))
+    u.arithmetic(inter, lambda b, a: inter.stack.append(0) if b == 0 else
+                 inter.stack.append(a / b))
 
 
 @commands.command_decorator("!")
@@ -265,7 +262,7 @@ def multiply(inter):
 
 
 @commands.command_decorator("+")
-def sum(inter):
+def sum_cmd(inter):
     u.arithmetic(inter, lambda s, f: inter.stack.append(s + f))
 
 
@@ -277,7 +274,7 @@ def subtract(inter):
 @commands.command_decorator("`")
 def compare(inter):
     u.arithmetic(inter, lambda s, f:
-    inter.stack.append(1 if f > s else 0))
+                 inter.stack.append(1 if f > s else 0))
 
 
 # funge space operations
@@ -356,7 +353,7 @@ def output_file(inter):
         with open(filename, "w") as f:
             for y in range(f_y, s_y + 1):
                 f.write(u.get_line_from_space(inter, f_x, y,
-                                                    lines_len))
+                                              lines_len))
     except OSError:
         execute_command(inter, "r")
 
@@ -369,7 +366,7 @@ def jump(inter):
 
 # program terminating
 @commands.command_decorator("q")
-def quit(inter):
+def quit_program(inter):
     execute_command(inter, ".")
     inter.finished = True
 
@@ -409,7 +406,7 @@ def end_block(inter):
         execute_command(inter, "r")
         return
     n = int(u.pop_with_zero(inter))
-    TOSS = inter.stack_stack.pop()
+    toss = inter.stack_stack.pop()
 
     inter.stack = inter.stack_stack[-1]
 
@@ -422,8 +419,8 @@ def end_block(inter):
         for _ in range(min(-n, len(inter.stack))):
             inter.stack.pop()
     else:
-        new_stack = [0] * (n - len(TOSS) + 1)
-        new_stack[-1:] = TOSS[-min(n, len(TOSS)):]
+        new_stack = [0] * (n - len(toss) + 1)
+        new_stack[-1:] = toss[-min(n, len(toss)):]
         inter.stack[len(inter.stack):] = new_stack
 
     inter.stack = inter.stack_stack[-1]
