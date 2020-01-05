@@ -35,7 +35,7 @@ class Window(QtWidgets.QWidget):
         self._run_btn.addAction(run)
         self._run_btn.clicked.connect(self.run_program)
 
-        self._step_run_btn = Window.create_cmd_button('Запуск пошаговый')
+        self._step_run_btn = Window.create_cmd_button('Step-by-step')
         run = QtWidgets.QAction(self)
         run.setShortcut('F6')
         run.triggered.connect(self.step_run_program)
@@ -82,7 +82,7 @@ class Window(QtWidgets.QWidget):
 
         self.input_button = QtWidgets.QPushButton('Ввести')
         self.input_button.setFont(QtGui.QFont('Mono', 16))
-        self.input_button.setStyleSheet('''background-color: #fff; 
+        self.input_button.setStyleSheet('''background-color: #fff;
                                             margin-top: 10px;''')
         self.input_button.clicked.connect(self.input_cmd)
 
